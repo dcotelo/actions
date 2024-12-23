@@ -1,7 +1,20 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 
 const JobModal = ({ job, jobId, onClose }) => {
+  const [expandedSteps, setExpandedSteps] = useState(new Set());
+
+  const toggleStep = (index) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
   if (!job) return null;
 
   return (
@@ -34,13 +47,45 @@ const JobModal = ({ job, jobId, onClose }) => {
               <h3>Steps</h3>
               {job.steps.map((step, index) => (
                 <div key={index} className="step-item">
-                  <div className="step-header">
-                    {step.name && <strong>{step.name}</strong>}
-                    {step.uses && <code>{step.uses}</code>}
+                  <div 
+                    className="step-header"
+                    onClick={() => toggleStep(index)}
+                  >
+                    <div className="step-title">
+                      {step.name && <strong>{step.name}</strong>}
+                      {!step.name && step.uses && <code>{step.uses}</code>}
+                      {!step.name && !step.uses && <em>Step {index + 1}</em>}
+                    </div>
+                    <button className="step-toggle">
+                      {expandedSteps.has(index) ? '−' : '+'}
+                    </button>
                   </div>
-                  {step.with && (
-                    <div className="step-with">
-                      <pre>{JSON.stringify(step.with, null, 2)}</pre>
+                  {expandedSteps.has(index) && (
+                    <div className="step-details">
+                      {step.uses && (
+                        <div className="step-field">
+                          <label>Uses:</label>
+                          <code>{step.uses}</code>
+                        </div>
+                      )}
+                      {step.run && (
+                        <div className="step-field">
+                          <label>Run:</label>
+                          <pre>{step.run}</pre>
+                        </div>
+                      )}
+                      {step.with && (
+                        <div className="step-field">
+                          <label>With:</label>
+                          <pre>{JSON.stringify(step.with, null, 2)}</pre>
+                        </div>
+                      )}
+                      {step.env && (
+                        <div className="step-field">
+                          <label>Environment:</label>
+                          <pre>{JSON.stringify(step.env, null, 2)}</pre>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

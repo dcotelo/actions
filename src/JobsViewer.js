@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import FlowDiagram from './FlowDiagram';
 
 const JobsViewer = ({ jobs }) => {
+  const [expandedSteps, setExpandedSteps] = useState({});
+
+  const toggleStep = (jobId, stepIndex) => {
+    setExpandedSteps(prev => ({
+      ...prev,
+      [`${jobId}-${stepIndex}`]: !prev[`${jobId}-${stepIndex}`]
+    }));
+  };
+
   if (!jobs) return null;
 
   return (
@@ -21,7 +30,37 @@ const JobsViewer = ({ jobs }) => {
                   <strong>Steps:</strong>
                   {jobConfig.steps.map((step, index) => (
                     <div key={index} className="step">
-                      {step.name || step.uses || `Step ${index + 1}`}
+                      <div 
+                        className="step-header"
+                        onClick={() => toggleStep(jobId, index)}
+                      >
+                        <span>{step.name || step.uses || `Step ${index + 1}`}</span>
+                        <button className="step-toggle">
+                          {expandedSteps[`${jobId}-${index}`] ? '−' : '+'}
+                        </button>
+                      </div>
+                      {expandedSteps[`${jobId}-${index}`] && (
+                        <div className="step-details">
+                          {step.uses && (
+                            <div className="step-field">
+                              <label>Uses:</label>
+                              <code>{step.uses}</code>
+                            </div>
+                          )}
+                          {step.run && (
+                            <div className="step-field">
+                              <label>Run:</label>
+                              <pre>{step.run}</pre>
+                            </div>
+                          )}
+                          {step.with && (
+                            <div className="step-field">
+                              <label>With:</label>
+                              <pre>{JSON.stringify(step.with, null, 2)}</pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
