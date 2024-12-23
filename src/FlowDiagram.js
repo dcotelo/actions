@@ -2,14 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import JobModal from './JobModal';
 
 const FlowDiagram = ({ jobs }) => {
+  // Remove zoom-related state
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [positions, setPositions] = useState({});
   const [dragging, setDragging] = useState(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hoveredJob, setHoveredJob] = useState(null);
-  const [scale, setScale] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selectedJob, setSelectedJob] = useState(null);
 
   // Add these constants at the top level of the component
@@ -43,38 +42,9 @@ const FlowDiagram = ({ jobs }) => {
     };
   }, [boxWidth, boxHeight, gridSize]);
 
-  const createZoomButton = useCallback((label, yOffset, onClick) => {
-    const button = createSvgElement("g", {
-      class: "zoom-button",
-      transform: `translate(0, ${yOffset})`
-    });
-    
-    const rect = createSvgElement("rect", {
-      width: "30",
-      height: "30",
-      rx: "4"
-    });
-    
-    const text = createSvgElement("text", {
-      x: "15",
-      y: "20",
-      "text-anchor": "middle"
-    });
-    text.textContent = label;
-    
-    button.appendChild(rect);
-    button.appendChild(text);
-    button.addEventListener("click", onClick);
-    
-    return button;
-  }, [createSvgElement]);
+  // Remove createZoomButton function
 
-  const handleZoom = useCallback((direction) => {
-    setScale(prevScale => {
-      const factor = direction === 'in' ? 1.2 : 0.8;
-      return Math.min(Math.max(0.5, prevScale * factor), 2);
-    });
-  }, []);
+  // Remove handleZoom function
 
   // Initialize positions when jobs change
   useEffect(() => {
@@ -116,13 +86,16 @@ const FlowDiagram = ({ jobs }) => {
   };
 
   const handleMouseDown = (e, jobId) => {
-    // Don't initiate drag if it's just a click
+    // Prevent event bubbling
+    e.stopPropagation();
+    
+    // Single click opens modal
     if (e.detail === 1) {
-      handleJobClick(jobId);
+      setSelectedJob(jobId);
       return;
     }
 
-    e.stopPropagation();
+    // Double click or drag initiates dragging
     const svg = svgRef.current;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
@@ -331,15 +304,9 @@ const FlowDiagram = ({ jobs }) => {
     
     svg.innerHTML = '';
 
-    // Create main groups
+    // Create main group without scale transform
     const mainGroup = createSvgElement("g", {
-      class: "diagram-content",
-      transform: `scale(${scale})`
-    });
-
-    const zoomGroup = createSvgElement("g", {
-      class: "zoom-controls",
-      transform: "translate(20, 20)"
+      class: "diagram-content"
     });
 
     // Setup arrowhead marker
@@ -363,8 +330,8 @@ const FlowDiagram = ({ jobs }) => {
 
     // Calculate and set dimensions
     const { diagramWidth, diagramHeight } = calculateDimensions(levels);
-    svg.setAttribute("width", Math.max(1200, diagramWidth * scale + 100));
-    svg.setAttribute("height", Math.max(600, diagramHeight * scale + 100));
+    svg.setAttribute("width", Math.max(1200, diagramWidth + 100));
+    svg.setAttribute("height", Math.max(600, diagramHeight + 100));
 
     // Draw content
     const { positions: newPositions, parallelGroups } = organizeParallelJobs(jobs, levels);
@@ -378,15 +345,9 @@ const FlowDiagram = ({ jobs }) => {
 
     // Add groups to SVG
     svg.appendChild(mainGroup);
-    svg.appendChild(createZoomControls(zoomGroup));
-  }, [jobs, scale, createSvgElement, calculateDimensions, createZoomButton, handleZoom]);
+  }, [jobs, createSvgElement, calculateDimensions]);
 
-  const handleWheel = useCallback((e) => {
-    if ((e.ctrlKey || e.metaKey) && e.deltaY !== 0) {
-      e.preventDefault();
-      handleZoom(e.deltaY < 0 ? 'in' : 'out');
-    }
-  }, [handleZoom]);
+  // Remove handleWheel function
 
   const drawConnections = useCallback((jobs, positions, mainGroup) => {
     Object.entries(jobs).forEach(([jobId, job]) => {
@@ -411,12 +372,7 @@ const FlowDiagram = ({ jobs }) => {
     });
   }, [drawJobs]);
 
-  const createZoomControls = useCallback((zoomGroup) => {
-    zoomGroup.appendChild(createZoomButton("+", 0, () => handleZoom('in')));
-    zoomGroup.appendChild(createZoomButton("-", 40, () => handleZoom('out')));
-    zoomGroup.appendChild(createZoomButton("↺", 80, () => setScale(1)));
-    return zoomGroup;
-  }, [createZoomButton, handleZoom]);
+  // Remove createZoomControls function
 
   useEffect(() => {
     const container = containerRef.current;
@@ -424,7 +380,6 @@ const FlowDiagram = ({ jobs }) => {
     if (!container || !svg || !jobs) return;
 
     // Add event listeners
-    container.addEventListener('wheel', handleWheel, { passive: false });
     svg.addEventListener("mousemove", handleMouseMove);
     svg.addEventListener("mouseup", handleMouseUp);
     svg.addEventListener("mouseleave", handleMouseUp);
@@ -437,12 +392,11 @@ const FlowDiagram = ({ jobs }) => {
 
     // Cleanup
     return () => {
-      container.removeEventListener('wheel', handleWheel);
       svg.removeEventListener("mousemove", handleMouseMove);
       svg.removeEventListener("mouseup", handleMouseUp);
       svg.removeEventListener("mouseleave", handleMouseUp);
     };
-  }, [jobs, positions, dragging, scale, handleWheel, drawDiagram]);
+  }, [jobs, positions, dragging, drawDiagram]);
 
   return (
     <div className="flow-diagram" ref={containerRef}>
@@ -450,11 +404,14 @@ const FlowDiagram = ({ jobs }) => {
       <div className="diagram-container">
         <svg ref={svgRef} className="flow-svg"></svg>
       </div>
-      {selectedJob && (
+      {selectedJob && jobs[selectedJob] && (
         <JobModal 
           job={jobs[selectedJob]} 
           jobId={selectedJob}
-          onClose={() => setSelectedJob(null)}
+          onClose={() => {
+            setSelectedJob(null);
+            resetHighlights();
+          }}
         />
       )}
     </div>

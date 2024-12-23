@@ -59,6 +59,7 @@
   font-size: 14px;
 }
 
+/* Step Styles */
 .steps {
   margin-top: 10px;
 }
@@ -75,16 +76,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 8px;
+  background: #f6f8fa;
+  border-radius: 4px;
+  margin-bottom: 4px;
   cursor: pointer;
+  user-select: none;
 }
 
 .step-toggle {
-  background: none;
-  border: none;
+  padding: 2px 8px;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  background: white;
   color: #666;
   font-size: 16px;
   cursor: pointer;
-  padding: 0 4px;
 }
 
 .step-details {
@@ -94,30 +101,31 @@
 }
 
 .step-field {
-  margin: 4px 0;
+  margin: 8px 0;
 }
 
 .step-field label {
   display: block;
   font-weight: 600;
-  margin-bottom: 2px;
-  color: #666;
+  margin-bottom: 4px;
+  color: #24292e;
 }
 
-.step-field pre {
-  margin: 0;
-  padding: 4px 8px;
-  background: #f1f1f1;
-  border-radius: 3px;
-  font-size: 12px;
-  overflow-x: auto;
-}
-
+.step-field pre,
 .step-field code {
-  background: #f1f1f1;
-  padding: 2px 4px;
-  border-radius: 3px;
+  background: #f6f8fa;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0;
   font-size: 12px;
+}
+
+.step-with {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f6f8fa;
+  border-radius: 4px;
 }
 
 .editor-controls {
@@ -143,6 +151,7 @@
   display: none;
 }
 
+/* Diagram Styles */
 .flow-diagram {
   margin: 20px 0;
   padding: 20px;
@@ -158,9 +167,6 @@
   margin-top: 10px;
   padding: 10px;
   background: #fafbfc;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
 }
 
 .flow-svg {
@@ -223,31 +229,20 @@
   opacity: 0.2;
 }
 
-.zoom-controls {
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-}
 
-.zoom-button {
-  cursor: pointer;
-}
 
-.zoom-button rect {
-  fill: white;
-  stroke: #ddd;
-  stroke-width: 1;
-}
-
-.zoom-button:hover rect {
-  fill: #f6f8fa;
-}
-
+/* Remove these classes */
+.zoom-controls,
+.zoom-button,
+.zoom-button rect,
+.zoom-button:hover rect,
 .zoom-button text {
-  fill: #444;
-  font-size: 14px;
-  font-weight: bold;
-  pointer-events: none;
+  /* remove these style blocks entirely */
 }
 
+
+
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -258,7 +253,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
 }
 
 .modal-content {
@@ -269,23 +265,30 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  margin: 20px;
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: sticky;
+  top: 0;
+  background: white;
   padding: 16px 24px;
   border-bottom: 1px solid #e1e4e8;
+  z-index: 1;
 }
 
 .modal-close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
   background: none;
   border: none;
   font-size: 24px;
   cursor: pointer;
   padding: 4px 8px;
   color: #666;
+  z-index: 2;
 }
 
 .modal-body {
@@ -311,23 +314,4 @@
   border: 1px solid #e1e4e8;
   border-radius: 6px;
   margin: 8px 0;
-}
-
-.step-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.step-with {
-  margin-top: 8px;
-  padding: 8px;
-  background: #f6f8fa;
-  border-radius: 4px;
-}
-
-.step-with pre {
-  margin: 0;
-  white-space: pre-wrap;
 }
