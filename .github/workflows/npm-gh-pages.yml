@@ -28,8 +28,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          npm install
           npm ci
-          npm install gh-pages --save-dev
 
       - name: Build
         run: npm run build
