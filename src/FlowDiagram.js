@@ -400,7 +400,7 @@ const FlowDiagram = ({ jobs }) => {
 
   return (
     <div className="flow-diagram" ref={containerRef}>
-      <h3>Workflow Flow</h3>
+      <h3>Workflow Diagram</h3>
       <div className="diagram-container">
         <svg ref={svgRef} className="flow-svg"></svg>
       </div>
