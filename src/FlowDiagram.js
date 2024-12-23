@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import JobModal from './JobModal';
 
 const FlowDiagram = ({ jobs }) => {
   const svgRef = useRef(null);
@@ -9,11 +10,71 @@ const FlowDiagram = ({ jobs }) => {
   const [hoveredJob, setHoveredJob] = useState(null);
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [selectedJob, setSelectedJob] = useState(null);
 
   // Add these constants at the top level of the component
   const gridSize = 100;
   const boxWidth = 180;
   const boxHeight = 80;
+
+  // Move utility functions before they're used
+  const createSvgElement = useCallback((type, attributes = {}) => {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", type);
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, value);
+    });
+    return element;
+  }, []);
+
+  const calculateDimensions = useCallback((levels) => {
+    const maxLevel = Math.max(...Object.values(levels));
+    const maxJobsInLevel = Math.max(
+      ...Object.values(
+        Object.entries(levels).reduce((acc, [jobId, level]) => {
+          acc[level] = (acc[level] || 0) + 1;
+          return acc;
+        }, {})
+      )
+    );
+
+    return {
+      diagramWidth: (maxLevel + 1) * (boxWidth + gridSize * 2),
+      diagramHeight: maxJobsInLevel * (boxHeight + gridSize)
+    };
+  }, [boxWidth, boxHeight, gridSize]);
+
+  const createZoomButton = useCallback((label, yOffset, onClick) => {
+    const button = createSvgElement("g", {
+      class: "zoom-button",
+      transform: `translate(0, ${yOffset})`
+    });
+    
+    const rect = createSvgElement("rect", {
+      width: "30",
+      height: "30",
+      rx: "4"
+    });
+    
+    const text = createSvgElement("text", {
+      x: "15",
+      y: "20",
+      "text-anchor": "middle"
+    });
+    text.textContent = label;
+    
+    button.appendChild(rect);
+    button.appendChild(text);
+    button.addEventListener("click", onClick);
+    
+    return button;
+  }, [createSvgElement]);
+
+  const handleZoom = useCallback((direction) => {
+    setScale(prevScale => {
+      const factor = direction === 'in' ? 1.2 : 0.8;
+      return Math.min(Math.max(0.5, prevScale * factor), 2);
+    });
+  }, []);
 
   // Initialize positions when jobs change
   useEffect(() => {
@@ -55,7 +116,13 @@ const FlowDiagram = ({ jobs }) => {
   };
 
   const handleMouseDown = (e, jobId) => {
-    e.stopPropagation();  // Prevent event bubbling
+    // Don't initiate drag if it's just a click
+    if (e.detail === 1) {
+      handleJobClick(jobId);
+      return;
+    }
+
+    e.stopPropagation();
     const svg = svgRef.current;
     const pt = svg.createSVGPoint();
     pt.x = e.clientX;
@@ -64,8 +131,8 @@ const FlowDiagram = ({ jobs }) => {
     
     setDragging(jobId);
     setOffset({
-      x: svgP.x - positions[jobId].x,
-      y: svgP.y - positions[jobId].y
+      x: svgP.x - (positions[jobId]?.x || 0),
+      y: svgP.y - (positions[jobId]?.y || 0)
     });
   };
 
@@ -204,6 +271,11 @@ const FlowDiagram = ({ jobs }) => {
     return { positions: newPositions, parallelGroups };
   };
 
+  const handleJobClick = useCallback((jobId, e) => {
+    if (dragging) return; // Don't show modal if dragging
+    setSelectedJob(jobId);
+  }, [dragging]);
+
   const drawJobs = (jobId, pos, isParallel) => {
     const jobGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     jobGroup.setAttribute("class", `job-node ${isParallel ? 'parallel' : ''}`);
@@ -231,9 +303,10 @@ const FlowDiagram = ({ jobs }) => {
     jobGroup.appendChild(text);
 
     // Add event listeners
+    jobGroup.addEventListener("mousedown", (e) => handleMouseDown(e, jobId));
+    // Remove separate click handler as it's now handled in mousedown
     jobGroup.addEventListener("mouseenter", () => handleMouseEnter(jobId));
     jobGroup.addEventListener("mouseleave", handleMouseLeave);
-    jobGroup.addEventListener("mousedown", (e) => handleMouseDown(e, jobId));
 
     return jobGroup;
   };
@@ -252,169 +325,124 @@ const FlowDiagram = ({ jobs }) => {
     return path;
   };
 
-  const drawDiagram = (levels) => {
+  const drawDiagram = useCallback((levels) => {
     const svg = svgRef.current;
     if (!svg || !jobs) return;
     
     svg.innerHTML = '';
-    
-    // Calculate diagram dimensions before creating elements
-    const maxLevel = Math.max(...Object.values(levels));
-    const maxJobsInLevel = Math.max(
-      ...Object.values(
-        Object.entries(levels).reduce((acc, [jobId, level]) => {
-          acc[level] = (acc[level] || 0) + 1;
-          return acc;
-        }, {})
-      )
-    );
 
-    const diagramWidth = (maxLevel + 1) * (boxWidth + gridSize * 2);
-    const diagramHeight = maxJobsInLevel * (boxHeight + gridSize);
+    // Create main groups
+    const mainGroup = createSvgElement("g", {
+      class: "diagram-content",
+      transform: `scale(${scale})`
+    });
 
-    // Add zoom controls container
-    const zoomGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    zoomGroup.setAttribute("class", "zoom-controls");
-    zoomGroup.setAttribute("transform", `translate(20, 20)`);
+    const zoomGroup = createSvgElement("g", {
+      class: "zoom-controls",
+      transform: "translate(20, 20)"
+    });
 
-    const zoomIn = createZoomButton("+", 0, () => handleZoom('in'));
-    const zoomOut = createZoomButton("-", 40, () => handleZoom('out'));
-    const resetZoom = createZoomButton("↺", 80, () => setScale(1));
+    // Setup arrowhead marker
+    const defs = createSvgElement("defs");
+    const marker = createSvgElement("marker", {
+      id: "arrowhead",
+      markerWidth: "10",
+      markerHeight: "7",
+      refX: "10",
+      refY: "3.5",
+      orient: "auto"
+    });
 
-    zoomGroup.appendChild(zoomIn);
-    zoomGroup.appendChild(zoomOut);
-    zoomGroup.appendChild(resetZoom);
+    marker.appendChild(createSvgElement("polygon", {
+      points: "0 0, 10 3.5, 0 7",
+      fill: "#0366d6"
+    }));
 
-    // Create main content group with zoom transform
-    const mainGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    mainGroup.setAttribute("class", "diagram-content");
-    mainGroup.setAttribute("transform", `scale(${scale})`);
-
-    // Create grid pattern
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
-    pattern.setAttribute("id", "grid");
-    pattern.setAttribute("width", gridSize);
-    pattern.setAttribute("height", gridSize);
-    pattern.setAttribute("patternUnits", "userSpaceOnUse");
-    
-    const gridPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    gridPath.setAttribute("d", `M ${gridSize} 0 L 0 0 0 ${gridSize}`);
-    gridPath.setAttribute("fill", "none");
-    gridPath.setAttribute("stroke", "#e0e0e0");
-    gridPath.setAttribute("stroke-width", "1");
-    
-    pattern.appendChild(gridPath);
-    defs.appendChild(pattern);
+    defs.appendChild(marker);
     svg.appendChild(defs);
 
-    // Add grid background
-    const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    background.setAttribute("width", "100%");
-    background.setAttribute("height", "100%");
-    background.setAttribute("fill", "url(#grid)");
-    svg.appendChild(background);
+    // Calculate and set dimensions
+    const { diagramWidth, diagramHeight } = calculateDimensions(levels);
+    svg.setAttribute("width", Math.max(1200, diagramWidth * scale + 100));
+    svg.setAttribute("height", Math.max(600, diagramHeight * scale + 100));
 
-    // Organize and draw jobs
+    // Draw content
     const { positions: newPositions, parallelGroups } = organizeParallelJobs(jobs, levels);
     setPositions(newPositions);
 
-    // Draw connections first (behind jobs)
+    // Draw connections first
+    drawConnections(jobs, newPositions, mainGroup);
+    
+    // Draw job boxes
+    drawJobBoxes(parallelGroups, newPositions, mainGroup);
+
+    // Add groups to SVG
+    svg.appendChild(mainGroup);
+    svg.appendChild(createZoomControls(zoomGroup));
+  }, [jobs, scale, createSvgElement, calculateDimensions, createZoomButton, handleZoom]);
+
+  const handleWheel = useCallback((e) => {
+    if ((e.ctrlKey || e.metaKey) && e.deltaY !== 0) {
+      e.preventDefault();
+      handleZoom(e.deltaY < 0 ? 'in' : 'out');
+    }
+  }, [handleZoom]);
+
+  const drawConnections = useCallback((jobs, positions, mainGroup) => {
     Object.entries(jobs).forEach(([jobId, job]) => {
       if (job.needs) {
         const needs = Array.isArray(job.needs) ? job.needs : [job.needs];
         needs.forEach(needId => {
-          const connectionPath = createConnection(needId, jobId, newPositions);
+          const connectionPath = createConnection(needId, jobId, positions);
           if (connectionPath) {
             mainGroup.appendChild(connectionPath);
           }
         });
       }
     });
+  }, [createConnection]);
 
-    // Draw job boxes
+  const drawJobBoxes = useCallback((parallelGroups, positions, mainGroup) => {
     Object.entries(parallelGroups).forEach(([level, group]) => {
       group.jobs.forEach(jobId => {
-        const jobGroup = drawJobs(jobId, newPositions[jobId], group.parallel);
+        const jobGroup = drawJobs(jobId, positions[jobId], group.parallel);
         mainGroup.appendChild(jobGroup);
       });
     });
+  }, [drawJobs]);
 
-    svg.appendChild(mainGroup);
-    svg.appendChild(zoomGroup);
-    
-    // Move all diagram content inside mainGroup instead of svg
-    mainGroup.appendChild(defs);
-    mainGroup.appendChild(background);
-    
-    // Update diagram dimensions for scrolling
-    const totalWidth = Math.max(1200, diagramWidth * scale + 100);
-    const totalHeight = Math.max(600, diagramHeight * scale + 100);
-    svg.setAttribute("width", totalWidth);
-    svg.setAttribute("height", totalHeight);
-  };
-
-  const createZoomButton = (label, yOffset, onClick) => {
-    const button = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    button.setAttribute("class", "zoom-button");
-    button.setAttribute("transform", `translate(0, ${yOffset})`);
-    
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("width", "30");
-    rect.setAttribute("height", "30");
-    rect.setAttribute("rx", "4");
-    
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", "15");
-    text.setAttribute("y", "20");
-    text.textContent = label;
-    
-    button.appendChild(rect);
-    button.appendChild(text);
-    button.addEventListener("click", onClick);
-    
-    return button;
-  };
-
-  const handleZoom = (direction) => {
-    setScale(prev => {
-      const newScale = direction === 'in' ? prev * 1.2 : prev / 1.2;
-      return Math.min(Math.max(0.5, newScale), 2); // Limit zoom between 0.5x and 2x
-    });
-  };
-
-  const handleWheel = (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      handleZoom(e.deltaY < 0 ? 'in' : 'out');
-    }
-  };
+  const createZoomControls = useCallback((zoomGroup) => {
+    zoomGroup.appendChild(createZoomButton("+", 0, () => handleZoom('in')));
+    zoomGroup.appendChild(createZoomButton("-", 40, () => handleZoom('out')));
+    zoomGroup.appendChild(createZoomButton("↺", 80, () => setScale(1)));
+    return zoomGroup;
+  }, [createZoomButton, handleZoom]);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleWheel, { passive: false });
-      return () => container.removeEventListener('wheel', handleWheel);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!jobs || !svgRef.current || Object.keys(positions).length === 0) return;
-    
     const svg = svgRef.current;
+    if (!container || !svg || !jobs) return;
+
+    // Add event listeners
+    container.addEventListener('wheel', handleWheel, { passive: false });
     svg.addEventListener("mousemove", handleMouseMove);
     svg.addEventListener("mouseup", handleMouseUp);
     svg.addEventListener("mouseleave", handleMouseUp);
 
-    const levels = calculateLevels(jobs);
-    drawDiagram(levels);
+    // Initialize diagram
+    if (Object.keys(positions).length > 0) {
+      const levels = calculateLevels(jobs);
+      drawDiagram(levels);
+    }
 
+    // Cleanup
     return () => {
+      container.removeEventListener('wheel', handleWheel);
       svg.removeEventListener("mousemove", handleMouseMove);
       svg.removeEventListener("mouseup", handleMouseUp);
       svg.removeEventListener("mouseleave", handleMouseUp);
     };
-  }, [jobs, positions, dragging]);
+  }, [jobs, positions, dragging, scale, handleWheel, drawDiagram]);
 
   return (
     <div className="flow-diagram" ref={containerRef}>
@@ -422,8 +450,15 @@ const FlowDiagram = ({ jobs }) => {
       <div className="diagram-container">
         <svg ref={svgRef} className="flow-svg"></svg>
       </div>
+      {selectedJob && (
+        <JobModal 
+          job={jobs[selectedJob]} 
+          jobId={selectedJob}
+          onClose={() => setSelectedJob(null)}
+        />
+      )}
     </div>
   );
 };
 
-export default FlowDiagram;
+export default React.memo(FlowDiagram);
