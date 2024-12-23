@@ -5,7 +5,7 @@ An interactive web-based editor and visualizer for GitHub Actions workflow files
 ## Features
 
 - 🎨 Interactive YAML editor with syntax highlighting
-- 📊 Visual workflow diagram with drag-and-drop job nodes
+- 📊 Visual workflow diagram with job nodes
 - ✅ Real-time YAML validation
 - 🔍 Detailed job and step information
 - 📱 Responsive design
