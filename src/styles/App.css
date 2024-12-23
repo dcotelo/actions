@@ -1,0 +1,20 @@
+/* src/styles/App.css */
+.app {
+    min-height: 100vh;
+    background: #f6f8fa;
+  }
+  
+  .app-header {
+    background: #24292e;
+    color: white;
+    padding: 1rem;
+  }
+  
+  .app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  main {
+    padding: 2rem;
+  }
