@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
+    "gh-pages": "^6.2.0",
     "js-yaml": "^4.1.0",
     "yaml-lint": "^1.7.0"
   },
@@ -8,8 +9,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
+  "homepage": "https://dcotelo.github.io/actions",
   "browserslist": {
     "production": [
       ">0.2%",
