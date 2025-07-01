@@ -60,7 +60,7 @@ const FlowDiagram = ({ jobs }) => {
     return levels;
   }, []);
 
-  const organizeParallelJobs = useCallback((jobs, levels) => {
+  const organizeParallelJobs = useCallback((jobs, levels, diagramHeight) => {
     const parallelGroups = {};
     
     Object.entries(jobs).forEach(([jobId, job]) => {
@@ -78,7 +78,8 @@ const FlowDiagram = ({ jobs }) => {
     Object.entries(parallelGroups).forEach(([level, group]) => {
       const jobCount = group.jobs.length;
       const totalHeight = jobCount * boxHeight + (jobCount - 1) * gridSize;
-      let startY = (600 - totalHeight) / 2;
+      // Use diagramHeight for vertical centering
+      let startY = ((diagramHeight || 600) - totalHeight) / 2;
 
       group.jobs.forEach((jobId, index) => {
         newPositions[jobId] = {
@@ -156,7 +157,9 @@ const FlowDiagram = ({ jobs }) => {
     
     svg.innerHTML = '';
     const levels = calculateLevels(jobs);
-    const { positions: newPositions, parallelGroups } = organizeParallelJobs(jobs, levels);
+    const { diagramWidth, diagramHeight } = calculateDimensions(levels);
+    // Pass diagramHeight to organizeParallelJobs
+    const { positions: newPositions, parallelGroups } = organizeParallelJobs(jobs, levels, diagramHeight);
     setPositions(newPositions);
 
     const mainGroup = createSvgElement("g", { class: "diagram-content" });
@@ -196,12 +199,11 @@ const FlowDiagram = ({ jobs }) => {
       });
     });
 
-    const { diagramWidth, diagramHeight } = calculateDimensions(levels);
     svg.setAttribute("width", String(Math.max(1200, diagramWidth + 100)));
     svg.setAttribute("height", String(Math.max(600, diagramHeight + 100)));
 
     svg.appendChild(mainGroup);
-  }, [jobs, createSvgElement, calculateLevels, organizeParallelJobs, createConnection, drawJobs, calculateDimensions]);
+  }, [jobs, createSvgElement, calculateLevels, organizeParallelJobs, drawJobs, createConnection, calculateDimensions]);
 
   useEffect(() => {
     if (!jobs) return;
@@ -211,7 +213,15 @@ const FlowDiagram = ({ jobs }) => {
   return (
     <div className="flow-diagram" ref={containerRef}>
       <h3>Workflow Diagram</h3>
-      <div className="diagram-container">
+      <div
+        className="diagram-container"
+        style={{
+          width: '100%',
+          height: '600px',
+          overflow: 'auto',
+          border: '1px solid #eee'
+        }}
+      >
         <svg ref={svgRef} className="flow-svg"></svg>
       </div>
       {selectedJob && jobs[selectedJob] && (
