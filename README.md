@@ -2,6 +2,9 @@
 
 An interactive web-based editor and visualizer for GitHub Actions workflow files. This tool helps you create, validate, and visualize your GitHub Actions workflows with an interactive directed graph, detailed job information, and real-time YAML editing.
 
+## 🚀 Live Demo
+
+Visit [https://dcotelo.github.io/actions](https://dcotelo.github.io/actions) to try it out!
 ![GitHub Actions Workflow Viewer](https://img.shields.io/badge/GitHub-Actions-blue)
 ![React](https://img.shields.io/badge/React-18.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -49,10 +52,6 @@ An interactive web-based editor and visualizer for GitHub Actions workflow files
 - **ARIA Labels**: Screen reader friendly
 - **Textual Fallback**: Alternative view for accessibility
 - **Focus Management**: Proper focus trapping in modals
-
-## 🚀 Live Demo
-
-Visit [https://dcotelo.github.io/actions](https://dcotelo.github.io/actions) to try it out!
 
 ## 📦 Installation
 
