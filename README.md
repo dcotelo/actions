@@ -10,6 +10,20 @@ Visit [https://dcotelo.github.io/actions](https://dcotelo.github.io/actions) to 
 ![React](https://img.shields.io/badge/React-18.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+## Screenshots
+
+**Editor** — Monaco-powered YAML editor with real-time validation
+
+![Editor view](docs/screenshot-editor.png)
+
+**Viewer** — Workflow overview with job metadata and trigger info
+
+![Viewer view](docs/screenshot-viewer.png)
+
+**Graph** — Interactive dependency graph with job nodes and edges
+
+![Graph view](docs/screenshot-graph.png)
+
 ## 🌟 Features
 
 ### Editor Mode
